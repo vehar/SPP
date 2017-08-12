@@ -104,8 +104,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->StartStopReadFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotStartStopReadFile()));
     connect(&timerReadFile, SIGNAL(timeout()), this, SLOT(slotReadFile()));
 
-      connect(ui->pushButton, SIGNAL(clicked()),this, SLOT(slotTextChange()));
-      connect(ui->myCheckBox, SIGNAL(clicked(bool)), ui->pushButton, SLOT(setDisabled(bool)));
+      connect(ui->temperatureButton, SIGNAL(clicked()),this, SLOT(slotTextChange()));
+     // connect(ui->humidityButton, SIGNAL(clicked(bool)), ui->temperatureButton, SLOT(setDisabled(bool)));
 }
 /******************************************************************************************************************/
 
@@ -188,8 +188,7 @@ msg += "cnt val ";
 msg += msg.number(cnt);
 
 cnt++;
-ui->pushButton->setText(msg);
-
+ui->temperatureButton->setText(msg);
 }
 
 
@@ -565,36 +564,48 @@ void MainWindow::onNewDataArrived(QStringList newData)
         // Increment data number
         dataPointNumber++;
 
-        for(int i = 0; i < numberOfAxes && dataListSize > i; ++i){
+// Add data to graphs according to number of axes
+       /* for(int i = 0; i < numberOfAxes && dataListSize > i; ++i)
+        {
             ui->plot->graph(i)->addData(dataPointNumber, newData[i].toInt());
             ui->plot->graph(i)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-        }
-        /*
-        // Add data to graphs according to number of axes
-        if(numberOfAxes == 1 && dataListSize > 0) {
-            // Add data to Graph 0
-            ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
-            // Remove data from graph 0
-            ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-        } else if(numberOfAxes == 2) {
-            ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
-            ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            if(dataListSize > 1){
+        }*/
+        switch(numberOfAxes)
+            {
+            case 1:
+            {
+                ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
+                ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+
                 ui->plot->graph(1)->addData(dataPointNumber, newData[1].toInt());
                 ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            }
-        } else if(numberOfAxes == 3) {
-            ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
-            ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            if(dataListSize > 1) {
+            } break;
+
+            case 2:
+            {
                 ui->plot->graph(1)->addData(dataPointNumber, newData[1].toInt());
                 ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            }
-            if(dataListSize > 2) {
+
                 ui->plot->graph(2)->addData(dataPointNumber, newData[2].toInt());
                 ui->plot->graph(2)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+            } break;
+
+            case 3:
+            {
+                ui->plot->graph(0)->addData(dataPointNumber, newData[6].toInt());
+                ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+
+                ui->plot->graph(1)->addData(dataPointNumber, newData[4].toInt());
+                ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+
+                ui->plot->graph(2)->addData(dataPointNumber, newData[5].toInt());
+                ui->plot->graph(2)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+            } break;
+
+            default: break;
             }
-        } else return;*/
+
+
     }
 }
 /******************************************************************************************************************/
