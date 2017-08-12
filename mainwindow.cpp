@@ -103,6 +103,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->OpenCloseFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotOpenFile()));
     connect(ui->StartStopReadFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotStartStopReadFile()));
     connect(&timerReadFile, SIGNAL(timeout()), this, SLOT(slotReadFile()));
+
+      connect(ui->pushButton, SIGNAL(clicked()),this, SLOT(slotTextChange()));
+      connect(ui->myCheckBox, SIGNAL(clicked(bool)), ui->pushButton, SLOT(setDisabled(bool)));
 }
 /******************************************************************************************************************/
 
@@ -175,6 +178,20 @@ void MainWindow::slotReadFile(){
     ui->plot->xAxis->setRange(dataPointNumber - NUMBER_OF_POINTS, dataPointNumber);
     ui->plot->replot();
 }
+
+int cnt = 0;
+void MainWindow::slotTextChange(){
+qDebug() << "MainWindow::slotTextChange();\r";
+
+QString msg;
+msg += "cnt val ";
+msg += msg.number(cnt);
+
+cnt++;
+ui->pushButton->setText(msg);
+
+}
+
 
 /******************************************************************************************************************/
 /* Create the GUI */

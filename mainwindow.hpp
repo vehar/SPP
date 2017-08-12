@@ -93,7 +93,7 @@ private slots:
     void on_spinPoints_valueChanged(int arg1);
     void on_actionHow_to_use_triggered();
 
-    //просто для теста
+    //just for debug
     void debugTimeOut();
 
     void readDocData();
@@ -154,6 +154,7 @@ private slots:
     void slotOpenFile();
     void slotReadFile();
     void slotStartStopReadFile();
+    void slotTextChange();
 };
 
 
