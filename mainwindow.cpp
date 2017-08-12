@@ -33,25 +33,40 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    connected(false), plotting(false), dataPointNumber(0), numberOfAxes(1), STATE(WAIT_START), NUMBER_OF_POINTS(500)
+    connected(false),
+    plotting(false),
+    dataPointNumber(0),
+    numberOfAxes(1),
+    STATE(WAIT_START),
+    NUMBER_OF_POINTS(500)
 {
-    ui->setupUi(this);
-    createUI();                                                                           // Create the UI
-    ui->plot->setBackground(QBrush(QColor(48,47,47)));                                    // Background for the plot area
-    setupPlot();                                                                          // Setup plot area
-    ui->stopPlotButton->setEnabled(false);                                                // Plot button is disabled initially
+    qDebug() << "MainWindow(" << parent << ");\r";
 
-    ui->plot->setNotAntialiasedElements(QCP::aeAll);                                      // used for higher performance (see QCustomPlot real time example)
+    ui->setupUi(this);
+    // Create the UI
+    createUI();
+    // Background for the plot area
+    ui->plot->setBackground(QBrush(QColor(48,47,47)));
+    // Setup plot area
+    setupPlot();
+    // Plot button is disabled initially
+    ui->stopPlotButton->setEnabled(false);
+    // used for higher performance (see QCustomPlot real time example)
+    ui->plot->setNotAntialiasedElements(QCP::aeAll);
     QFont font;
     font.setStyleStrategy(QFont::NoAntialias);
     ui->plot->xAxis->setTickLabelFont(font);
     ui->plot->yAxis->setTickLabelFont(font);
     ui->plot->legend->setFont(font);
 
-    ui->plot->yAxis->setAutoTickStep(false);                                              // User can change tick step with a spin box
-    ui->plot->yAxis->setTickStep(500);                                                    // Set initial tick step
-    ui->plot->xAxis->setTickLabelColor(QColor(170,170,170));                              // Tick labels color
-    ui->plot->yAxis->setTickLabelColor(QColor(170,170,170));                              // See QCustomPlot examples / styled demo
+    // User can change tick step with a spin box
+    ui->plot->yAxis->setAutoTickStep(false);
+    // Set initial tick step
+    ui->plot->yAxis->setTickStep(500);
+    // Tick labels color
+    ui->plot->xAxis->setTickLabelColor(QColor(170,170,170));
+    // See QCustomPlot examples / styled demo
+    ui->plot->yAxis->setTickLabelColor(QColor(170,170,170));
     ui->plot->xAxis->grid()->setPen(QPen(QColor(170,170,170), 1, Qt::DotLine));
     ui->plot->yAxis->grid()->setPen(QPen(QColor(170,170,170), 1, Qt::DotLine));
     ui->plot->xAxis->grid()->setSubGridPen(QPen(QColor(80,80,80), 1, Qt::DotLine));
@@ -71,8 +86,23 @@ MainWindow::MainWindow(QWidget *parent) :
                                                                                           // Slot for printing coordinates
     connect(ui->plot, SIGNAL(mouseRelease(QMouseEvent*)), this, SLOT(onMouseMoveInPlot(QMouseEvent*)));
 
-    serialPort = NULL;                                                                    // Set serial port pointer to NULL initially
-    connect(&updateTimer, SIGNAL(timeout()), this, SLOT(replot()));                       // Connect update timer to replot slot
+    // Set serial port pointer to NULL initially
+    serialPort = NULL;
+    // Connect update timer to replot slot
+    connect(&updateTimer, SIGNAL(timeout()), this, SLOT(replot()));
+
+    //все что ниже потом нужно удалить
+    //enableControls(true);
+    //ui->connectButton->setEnabled(true);
+    //ui->saveJPGButton->setEnabled(true);
+    ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
+    writer.setFileName("test.txt");
+    writer.open(QIODevice::ReadWrite | QIODevice::Text);
+    ui->StartStopReadFileBtn->setDisabled(true);
+    connect(ui->OpenCloseFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotOpenFile()));
+    connect(ui->StartStopReadFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotStartStopReadFile()));
+    connect(&timerReadFile, SIGNAL(timeout()), this, SLOT(slotReadFile()));
 }
 /******************************************************************************************************************/
 
@@ -82,18 +112,78 @@ MainWindow::MainWindow(QWidget *parent) :
 /******************************************************************************************************************/
 MainWindow::~MainWindow()
 {
+    qDebug() << "~MainWindow();\r";
     if(serialPort != NULL) delete serialPort;
     delete ui;
+    writer.close();
+    reader.close();
 }
 /******************************************************************************************************************/
 
+void MainWindow::debugTimeOut(){
+    qDebug() << "MainWindow::debugTimeOut();\r";
+}
+void MainWindow::slotStartStopReadFile(){
+    static bool start = false;
+    if(!start){
+        ui->StartStopReadFileBtn->setText("Stop");
+        timerReadFile.start();
+    }
+    else{
+        ui->StartStopReadFileBtn->setText("Start");
+        timerReadFile.stop();
+    }
+    start = !start;
+}
+
+void MainWindow::slotOpenFile(){
+    static bool open = false;
+    if(!open){
+        reader.setFileName("test.txt");
+        reader.open(QIODevice::ReadWrite | QIODevice::Text);
+        ui->StartStopReadFileBtn->setEnabled(true);
+        ui->comboAxes->setEnabled(true);
+        ui->OpenCloseFileBtn->setText("Close File");
+    }
+    else{
+        reader.close();
+        ui->StartStopReadFileBtn->setDisabled(true);
+        ui->comboAxes->setDisabled(true);
+        ui->OpenCloseFileBtn->setText("Open File");
+    }
+    open = !open;
+}
+
+void MainWindow::slotReadFile(){
+    qDebug() << "MainWindow::slotReadFile();\r";
+    QStringList newData;
+    QString str;
+    if(!reader.atEnd()){
+        str = reader.readLine();
+        qDebug() << str << ";\r";
+        newData = str.split(",");
+    }
+    else{
+        slotStartStopReadFile();
+    }
+    int dataListSize = newData.size();
+    dataPointNumber++;
+    for(int i = 0; i < numberOfAxes && dataListSize > i; ++i){
+        ui->plot->graph(i)->addData(dataPointNumber, newData[i].toInt());
+        ui->plot->graph(i)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+    }
+    ui->plot->xAxis->setRange(dataPointNumber - NUMBER_OF_POINTS, dataPointNumber);
+    ui->plot->replot();
+}
 
 /******************************************************************************************************************/
-/**Create the GUI */
+/* Create the GUI */
 /******************************************************************************************************************/
 void MainWindow::createUI()
 {
-    if(QSerialPortInfo::availablePorts().size() == 0) {                                   // Check if there are any ports at all; if not, disable controls and return
+    qDebug() << "MainWindow::createUI();\r";
+    // Check if there are any ports at all; if not, disable controls and return
+    if(QSerialPortInfo::availablePorts().size() == 0) {
         enableControls(false);
         ui->connectButton->setEnabled(false);
         ui->statusBar->showMessage("No ports detected.");
@@ -101,11 +191,13 @@ void MainWindow::createUI()
         return;
     }
 
-    for(QSerialPortInfo port : QSerialPortInfo::availablePorts()) {                       // List all available serial ports and populate ports combo box
+    // List all available serial ports and populate ports combo box
+    for(QSerialPortInfo port : QSerialPortInfo::availablePorts()) {
         ui->comboPort->addItem(port.portName());
     }
 
-    ui->comboBaud->addItem("1200");                                                       // Populate baud rate combo box
+    // Populate baud rate combo box
+    ui->comboBaud->addItem("1200");
     ui->comboBaud->addItem("2400");
     ui->comboBaud->addItem("4800");
     ui->comboBaud->addItem("9600");
@@ -113,21 +205,24 @@ void MainWindow::createUI()
     ui->comboBaud->addItem("38400");
     ui->comboBaud->addItem("57600");
     ui->comboBaud->addItem("115200");
-    ui->comboBaud->setCurrentIndex(7);                                                    // Select 9600 bits by default
+    // Select 9600 bits by default
+    ui->comboBaud->setCurrentIndex(7);
 
-    ui->comboData->addItem("8 bits");                                                     // Populate data bits combo box
+    // Populate data bits combo box
+    ui->comboData->addItem("8 bits");
     ui->comboData->addItem("7 bits");
 
-    ui->comboParity->addItem("none");                                                     // Populate parity combo box
+    // Populate parity combo box
+    ui->comboParity->addItem("none");
     ui->comboParity->addItem("odd");
     ui->comboParity->addItem("even");
 
-    ui->comboStop->addItem("1 bit");                                                      // Populate stop bits combo box
+    // Populate stop bits combo box
+    ui->comboStop->addItem("1 bit");
     ui->comboStop->addItem("2 bits");
 
-    ui->comboAxes->addItem("1");                                                          // Populate axes combo box; 3 axes maximum allowed
-    ui->comboAxes->addItem("2");
-    ui->comboAxes->addItem("3");
+    // Populate axes combo box;                 // 3 axes maximum allowed
+    ui->comboAxes->setValue(1);
 }
 /******************************************************************************************************************/
 
@@ -137,7 +232,9 @@ void MainWindow::createUI()
 /******************************************************************************************************************/
 void MainWindow::enableControls(bool enable)
 {
-    ui->comboBaud->setEnabled(enable);                                                    // Disable controls in the GUI
+    qDebug() << "MainWindow::enableControls(" << enable << ");\r";
+    // Disable controls in the GUI
+    ui->comboBaud->setEnabled(enable);
     ui->comboData->setEnabled(enable);
     ui->comboParity->setEnabled(enable);
     ui->comboPort->setEnabled(enable);
@@ -152,29 +249,67 @@ void MainWindow::enableControls(bool enable)
 /******************************************************************************************************************/
 void MainWindow::setupPlot()
 {
-    ui->plot->clearItems();                                                              // Remove everything from the plot
-
-    ui->plot->yAxis->setTickStep(ui->spinYStep->value());                                // Set tick step according to user spin box
-    numberOfAxes = ui->comboAxes->currentText().toInt();                                 // Get number of axes from the user combo
-    ui->plot->yAxis->setRange(ui->spinAxesMin->value(), ui->spinAxesMax->value());       // Set lower and upper plot range
-    ui->plot->xAxis->setRange(0, NUMBER_OF_POINTS);                                      // Set x axis range for specified number of points
-
-    if(numberOfAxes == 1) {                                                               // If 1 axis selected
-        ui->plot->addGraph();                                                             // add Graph 0
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-    } else if(numberOfAxes == 2) {                                                        // If 2 axes selected
-        ui->plot->addGraph();                                                             // add Graph 0
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-        ui->plot->addGraph();                                                             // add Graph 1
-        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
-    } else if(numberOfAxes == 3) {                                                        // If 3 axis selected
-        ui->plot->addGraph();                                                             // add Graph 0
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-        ui->plot->addGraph();                                                             // add Graph 1
-        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
-        ui->plot->addGraph();                                                             // add Graph 2
-        ui->plot->graph(2)->setPen(QPen(Qt::green));
+    qDebug() << "MainWindow::setupPlot();\r";
+    // Remove everything from the plot
+    ui->plot->clearItems();
+    // Set tick step according to user spin box
+    ui->plot->yAxis->setTickStep(ui->spinYStep->value());
+    // Get number of axes from the user combo
+    numberOfAxes = ui->comboAxes->value();
+    // Set lower and upper plot range
+    ui->plot->yAxis->setRange(ui->spinAxesMin->value(), ui->spinAxesMax->value());
+    // Set x axis range for specified number of points
+    ui->plot->xAxis->setRange(0, NUMBER_OF_POINTS);
+    for(int i = 0; i < numberOfAxes; ++i){
+        ui->plot->addGraph();
+        switch(i%6){
+        case 0:
+            ui->plot->graph(i)->setPen(QPen(Qt::red));
+            break;
+        case 1:
+            ui->plot->graph(i)->setPen(QPen(Qt::green));
+            break;
+        case 2:
+            ui->plot->graph(i)->setPen(QPen(Qt::blue));
+            break;
+        case 3:
+            ui->plot->graph(i)->setPen(QPen(Qt::cyan));
+            break;
+        case 4:
+            ui->plot->graph(i)->setPen(QPen(Qt::magenta));
+            break;
+        case 5:
+            ui->plot->graph(i)->setPen(QPen(Qt::yellow));
+            break;
+        }
     }
+
+/*
+    // If 1 axis selected
+    if(numberOfAxes == 1) {
+        // add Graph 0
+        ui->plot->addGraph();
+        ui->plot->graph(0)->setPen(QPen(Qt::red));
+    // If 2 axes selected
+    } else if(numberOfAxes == 2) {
+        // add Graph 0
+        ui->plot->addGraph();
+        ui->plot->graph(0)->setPen(QPen(Qt::red));
+        // add Graph 1
+        ui->plot->addGraph();
+        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
+    // If 3 axis selected
+    } else if(numberOfAxes == 3) {
+        // add Graph 0
+        ui->plot->addGraph();
+        ui->plot->graph(0)->setPen(QPen(Qt::red));
+        // add Graph 1
+        ui->plot->addGraph();
+        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
+        // add Graph 2
+        ui->plot->addGraph();
+        ui->plot->graph(2)->setPen(QPen(Qt::green));
+    }*/
 }
 /******************************************************************************************************************/
 
@@ -184,9 +319,12 @@ void MainWindow::setupPlot()
 /******************************************************************************************************************/
 void MainWindow::openPort(QSerialPortInfo portInfo, int baudRate, QSerialPort::DataBits dataBits, QSerialPort::Parity parity, QSerialPort::StopBits stopBits)
 {
-    serialPort = new QSerialPort(portInfo, 0);                                            // Create a new serial port
+    qDebug() << "MainWindow::openPort(portInfo, baudRate, dataBits, parity, stopBits);\r";
+    // Create a new serial port
+    serialPort = new QSerialPort(portInfo, 0);
 
-    connect(this, SIGNAL(portOpenOK()), this, SLOT(portOpenedSuccess()));                 // Connect port signals to GUI slots
+    // Connect port signals to GUI slots
+    connect(this, SIGNAL(portOpenOK()), this, SLOT(portOpenedSuccess()));
     connect(this, SIGNAL(portOpenFail()), this, SLOT(portOpenedFail()));
     connect(this, SIGNAL(portClosed()), this, SLOT(onPortClosed()));
     connect(this, SIGNAL(newData(QStringList)), this, SLOT(onNewDataArrived(QStringList)));
@@ -212,7 +350,9 @@ void MainWindow::openPort(QSerialPortInfo portInfo, int baudRate, QSerialPort::D
 /******************************************************************************************************************/
 void MainWindow::on_comboPort_currentIndexChanged(const QString &arg1)
 {
-    QSerialPortInfo selectedPort(arg1);                                                   // Dislplay info for selected port
+    qDebug() << "MainWindow::on_comboPort_currentIndexChanged(" << arg1 << ");\r";
+    // Dislplay info for selected port
+    QSerialPortInfo selectedPort(arg1);
     ui->statusBar->showMessage(selectedPort.description());
 }
 /******************************************************************************************************************/
@@ -223,37 +363,57 @@ void MainWindow::on_comboPort_currentIndexChanged(const QString &arg1)
 /******************************************************************************************************************/
 void MainWindow::on_connectButton_clicked()
 {
-    if(connected) {                                                                       // If application is connected, disconnect
-        serialPort->close();                                                              // Close serial port
-        emit portClosed();                                                                // Notify application
-        delete serialPort;                                                                // Delete the pointer
-        serialPort = NULL;                                                                // Assign NULL to dangling pointer
-        ui->connectButton->setText("Connect");                                            // Change Connect button text, to indicate disconnected
-        ui->statusBar->showMessage("Disconnected!");                                      // Show message in status bar
-        connected = false;                                                                // Set connected status flag to false
-        plotting = false;                                                                 // Not plotting anymore
-        receivedData.clear();                                                             // Clear received string
-        ui->stopPlotButton->setEnabled(false);                                            // Take care of controls
+    qDebug() << "MainWindow::on_connectButton_clicked();\r";
+    // If application is connected, disconnect
+    if(connected) {
+        // Close serial port
+        serialPort->close();
+        // Notify application
+        emit portClosed();
+        // Delete the pointer
+        delete serialPort;
+        // Assign NULL to dangling pointer
+        serialPort = NULL;
+        // Change Connect button text, to indicate disconnected
+        ui->connectButton->setText("Connect");
+        // Show message in status bar
+        ui->statusBar->showMessage("Disconnected!");
+        // Set connected status flag to false
+        connected = false;
+        // Not plotting anymore
+        plotting = false;
+        // Clear received string
+        receivedData.clear();
+        // Take care of controls
+        ui->stopPlotButton->setEnabled(false);
         ui->saveJPGButton->setEnabled(false);
         enableControls(true);
-    } else {                                                                              // If application is not connected, connect
+    // If application is not connected, connect
                                                                                           // Get parameters from controls first
-        QSerialPortInfo portInfo(ui->comboPort->currentText());                           // Temporary object, needed to create QSerialPort
-        int baudRate = ui->comboBaud->currentText().toInt();                              // Get baud rate from combo box
-        int dataBitsIndex = ui->comboData->currentIndex();                                // Get index of data bits combo box
-        int parityIndex = ui->comboParity->currentIndex();                                // Get index of parity combo box
-        int stopBitsIndex = ui->comboStop->currentIndex();                                // Get index of stop bits combo box
+    } else {
+        // Temporary object, needed to create QSerialPort
+        QSerialPortInfo portInfo(ui->comboPort->currentText());
+        // Get baud rate from combo box
+        int baudRate = ui->comboBaud->currentText().toInt();
+        // Get index of data bits combo box
+        int dataBitsIndex = ui->comboData->currentIndex();
+        // Get index of parity combo box
+        int parityIndex = ui->comboParity->currentIndex();
+        // Get index of stop bits combo box
+        int stopBitsIndex = ui->comboStop->currentIndex();
         QSerialPort::DataBits dataBits;
         QSerialPort::Parity parity;
         QSerialPort::StopBits stopBits;
 
-        if(dataBitsIndex == 0) {                                                          // Set data bits according to the selected index
+        // Set data bits according to the selected index
+        if(dataBitsIndex == 0) {
             dataBits = QSerialPort::Data8;
         } else {
             dataBits = QSerialPort::Data7;
         }
 
-        if(parityIndex == 0) {                                                            // Set parity according to the selected index
+        // Set parity according to the selected index
+        if(parityIndex == 0) {
             parity = QSerialPort::NoParity;
         } else if(parityIndex == 1) {
             parity = QSerialPort::OddParity;
@@ -261,14 +421,17 @@ void MainWindow::on_connectButton_clicked()
             parity = QSerialPort::EvenParity;
         }
 
-        if(stopBitsIndex == 0) {                                                          // Set stop bits according to the selected index
+        // Set stop bits according to the selected index
+        if(stopBitsIndex == 0) {
              stopBits = QSerialPort::OneStop;
         } else {
             stopBits = QSerialPort::TwoStop;
         }
 
-        serialPort = new QSerialPort(portInfo, 0);                                        // Use local instance of QSerialPort; does not crash
-        openPort(portInfo, baudRate, dataBits, parity, stopBits);                         // Open serial port and connect its signals
+        // Use local instance of QSerialPort; does not crash
+        serialPort = new QSerialPort(portInfo, 0);
+        // Open serial port and connect its signals
+        openPort(portInfo, baudRate, dataBits, parity, stopBits);
     }
 }
 /******************************************************************************************************************/
@@ -279,16 +442,24 @@ void MainWindow::on_connectButton_clicked()
 /******************************************************************************************************************/
 void MainWindow::portOpenedSuccess()
 {
+    qDebug() << "MainWindow::portOpenedSuccess();\r";
     //qDebug() << "Port opened signal received!";
-    ui->connectButton->setText("Disconnect");                                             // Change buttons
+    // Change buttons
+    ui->connectButton->setText("Disconnect");
     ui->statusBar->showMessage("Connected!");
-    enableControls(false);                                                                // Disable controls if port is open
-    ui->stopPlotButton->setText("Stop Plot");                                             // Enable button for stopping plot
+    // Disable controls if port is open
+    enableControls(false);
+    // Enable button for stopping plot
+    ui->stopPlotButton->setText("Stop Plot");
     ui->stopPlotButton->setEnabled(true);
-    ui->saveJPGButton->setEnabled(true);                                                  // Enable button for saving plot
-    setupPlot();                                                                          // Create the QCustomPlot area
-    updateTimer.start(20);                                                                // Slot is refreshed 20 times per second
-    connected = true;                                                                     // Set flags
+    // Enable button for saving plot
+    ui->saveJPGButton->setEnabled(true);
+    // Create the QCustomPlot area
+    setupPlot();
+    // Slot is refreshed 20 times per second
+    updateTimer.start(20);
+    // Set flags
+    connected = true;
     plotting = true;
 }
 /******************************************************************************************************************/
@@ -299,6 +470,7 @@ void MainWindow::portOpenedSuccess()
 /******************************************************************************************************************/
 void MainWindow::portOpenedFail()
 {
+    qDebug() << "MainWindow::portOpenedFail();\r";
     //qDebug() << "Port cannot be open signal received!";
     ui->statusBar->showMessage("Cannot open port!");
 }
@@ -310,11 +482,13 @@ void MainWindow::portOpenedFail()
 /******************************************************************************************************************/
 void MainWindow::onPortClosed()
 {
+    qDebug() << "MainWindow::onPortClosed();\r";
     //qDebug() << "Port closed signal received!";
     updateTimer.stop();
     connected = false;
     disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readData()));
-    disconnect(this, SIGNAL(portOpenOK()), this, SLOT(portOpenedSuccess()));             // Disconnect port signals to GUI slots
+    // Disconnect port signals to GUI slots
+    disconnect(this, SIGNAL(portOpenOK()), this, SLOT(portOpenedSuccess()));
     disconnect(this, SIGNAL(portOpenFail()), this, SLOT(portOpenedFail()));
     disconnect(this, SIGNAL(portClosed()), this, SLOT(onPortClosed()));
     disconnect(this, SIGNAL(newData(QStringList)), this, SLOT(onNewDataArrived(QStringList)));
@@ -326,6 +500,7 @@ void MainWindow::onPortClosed()
 /******************************************************************************************************************/
 void MainWindow::replot()
 {
+    qDebug() << "MainWindow::replot();\r";
     if(connected) {
         ui->plot->xAxis->setRange(dataPointNumber - NUMBER_OF_POINTS, dataPointNumber);
         ui->plot->replot();
@@ -339,12 +514,17 @@ void MainWindow::replot()
 /******************************************************************************************************************/
 void MainWindow::on_stopPlotButton_clicked()
 {
-    if(plotting) {                                                                        // Stop plotting
-        updateTimer.stop();                                                               // Stop updating plot timer
+    qDebug() << "MainWindow::on_stopPlotButton_clicked();\r";
+    // Stop plotting
+    if(plotting) {
+        // Stop updating plot timer
+        updateTimer.stop();
         plotting = false;
         ui->stopPlotButton->setText("Start Plot");
-    } else {                                                                              // Start plotting
-        updateTimer.start();                                                              // Start updating plot timer
+    // Start plotting
+    } else {
+        // Start updating plot timer
+        updateTimer.start();
         plotting = true;
         ui->stopPlotButton->setText("Stop Plot");
     }
@@ -357,13 +537,28 @@ void MainWindow::on_stopPlotButton_clicked()
 /******************************************************************************************************************/
 void MainWindow::onNewDataArrived(QStringList newData)
 {
+    qDebug() << "MainWindow::onNewDataArrived(" << newData << ");\r";
+    QString str = "";
+            str += newData.join(",");
+            str += "\n";
+            writer.write(str.toLocal8Bit());
     if(plotting) {
-        int dataListSize = newData.size();                                                    // Get size of received list
-        dataPointNumber++;                                                                    // Increment data number
+        // Get size of received list
+        int dataListSize = newData.size();
+        // Increment data number
+        dataPointNumber++;
 
-        if(numberOfAxes == 1 && dataListSize > 0) {                                           // Add data to graphs according to number of axes
-            ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());                 // Add data to Graph 0
-            ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);           // Remove data from graph 0
+        for(int i = 0; i < numberOfAxes && dataListSize > i; ++i){
+            ui->plot->graph(i)->addData(dataPointNumber, newData[i].toInt());
+            ui->plot->graph(i)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+        }
+        /*
+        // Add data to graphs according to number of axes
+        if(numberOfAxes == 1 && dataListSize > 0) {
+            // Add data to Graph 0
+            ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
+            // Remove data from graph 0
+            ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
         } else if(numberOfAxes == 2) {
             ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
             ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
@@ -382,7 +577,7 @@ void MainWindow::onNewDataArrived(QStringList newData)
                 ui->plot->graph(2)->addData(dataPointNumber, newData[2].toInt());
                 ui->plot->graph(2)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
             }
-        } else return;
+        } else return;*/
     }
 }
 /******************************************************************************************************************/
@@ -393,6 +588,7 @@ void MainWindow::onNewDataArrived(QStringList newData)
 /******************************************************************************************************************/
 void MainWindow::on_spinAxesMin_valueChanged(int arg1)
 {
+    qDebug() << "MainWindow::on_spinAxesMin_valueChanged(" << arg1 << ");\r";
     ui->plot->yAxis->setRangeLower(arg1);
     ui->plot->replot();
 }
@@ -404,40 +600,106 @@ void MainWindow::on_spinAxesMin_valueChanged(int arg1)
 /******************************************************************************************************************/
 void MainWindow::on_spinAxesMax_valueChanged(int arg1)
 {
+    qDebug() << "MainWindow::on_spinAxesMax_valueChanged(" << arg1 << ");\r";
     ui->plot->yAxis->setRangeUpper(arg1);
     ui->plot->replot();
 }
 /******************************************************************************************************************/
 
+void MainWindow::readDocData(){
+    qDebug() << "MainWindow::readDocData();\r";
+    // If any bytes are available
+    if(serialPort->bytesAvailable()) {
+        // Read all data in QByteArray
+        QByteArray data = serialPort->readAll();
+
+        // If the byte array is not empty
+        if(!data.isEmpty()) {
+            // Get a '\0'-terminated char* to the data
+            char *temp = data.data();
+
+            // Iterate over the char*
+            for(int i = 0; temp[i] != '\0'; i++) {
+                // Switch the current state of the message
+                switch(STATE) {
+                // If waiting for start [$], examine each char
+                case WAIT_START:
+                    // If the char is $, change STATE to IN_MESSAGE
+                    if(temp[i] == START_MSG) {
+                        STATE = IN_MESSAGE;
+                        // Clear temporary QString that holds the message
+                        receivedData.clear();
+                        // Break out of the switch
+                        break;
+                    }
+                    break;
+                // If state is IN_MESSAGE
+                case IN_MESSAGE:
+                    // If char examined is ;, switch state to END_MSG
+                    if(temp[i] == END_MSG) {
+                        STATE = WAIT_START;
+                        // Split string received from port and put it into list
+                        QStringList incomingData = receivedData.split(' ');
+                        // Emit signal for data received with the list
+                        emit newData(incomingData);
+                        break;
+                    }
+                    // If examined char is a digit, and not '$' or ';', append it to temporary string
+                    else if(isdigit(temp[i]) || isspace(temp[i]) ) {
+                        receivedData.append(temp[i]);
+                    }
+                    break;
+                default: break;
+                }
+            }
+        }
+    }
+}
 
 /******************************************************************************************************************/
 /* Read data for inside serial port */
 /******************************************************************************************************************/
 void MainWindow::readData()
 {
-    if(serialPort->bytesAvailable()) {                                                    // If any bytes are available
-        QByteArray data = serialPort->readAll();                                          // Read all data in QByteArray
+    qDebug() << "MainWindow::readData();\r";
+    // If any bytes are available
+    if(serialPort->bytesAvailable()) {
+        // Read all data in QByteArray
+        QByteArray data = serialPort->readAll();
 
-        if(!data.isEmpty()) {                                                             // If the byte array is not empty
-            char *temp = data.data();                                                     // Get a '\0'-terminated char* to the data
+        // If the byte array is not empty
+        if(!data.isEmpty()) {
+            // Get a '\0'-terminated char* to the data
+            char *temp = data.data();
 
-            for(int i = 0; temp[i] != '\0'; i++) {                                        // Iterate over the char*
-                switch(STATE) {                                                           // Switch the current state of the message
-                case WAIT_START:                                                          // If waiting for start [$], examine each char
-                    if(temp[i] == START_MSG) {                                            // If the char is $, change STATE to IN_MESSAGE
+            // Iterate over the char*
+            for(int i = 0; temp[i] != '\0'; i++) {
+                // Switch the current state of the message
+                switch(STATE) {
+                // If waiting for start [$], examine each char
+                case WAIT_START:
+                    // If the char is $, change STATE to IN_MESSAGE
+                    if(temp[i] == START_MSG) {
                         STATE = IN_MESSAGE;
-                        receivedData.clear();                                             // Clear temporary QString that holds the message
-                        break;                                                            // Break out of the switch
-                    }
-                    break;
-                case IN_MESSAGE:                                                          // If state is IN_MESSAGE
-                    if(temp[i] == END_MSG) {                                              // If char examined is ;, switch state to END_MSG
-                        STATE = WAIT_START;
-                        QStringList incomingData = receivedData.split(' ');               // Split string received from port and put it into list
-                        emit newData(incomingData);                                       // Emit signal for data received with the list
+                        // Clear temporary QString that holds the message
+                        receivedData.clear();
+                        // Break out of the switch
                         break;
                     }
-                    else if(isdigit(temp[i]) || isspace(temp[i]) ) {                      // If examined char is a digit, and not '$' or ';', append it to temporary string
+                    break;
+                // If state is IN_MESSAGE
+                case IN_MESSAGE:
+                    // If char examined is ;, switch state to END_MSG
+                    if(temp[i] == END_MSG) {
+                        STATE = WAIT_START;
+                        // Split string received from port and put it into list
+                        QStringList incomingData = receivedData.split(' ');
+                        // Emit signal for data received with the list
+                        emit newData(incomingData);
+                        break;
+                    }
+                    // If examined char is a digit, and not '$' or ';', append it to temporary string
+                    else if(isdigit(temp[i]) || isspace(temp[i]) ) {
                         receivedData.append(temp[i]);
                     }
                     break;
@@ -453,15 +715,13 @@ void MainWindow::readData()
 /******************************************************************************************************************/
 /* Number of axes combo; when changed, display axes colors in status bar */
 /******************************************************************************************************************/
-void MainWindow::on_comboAxes_currentIndexChanged(int index)
+void MainWindow::on_comboAxes_valueChanged(int index)
 {
-    if(index == 0) {
-      ui->statusBar->showMessage("Axis 1: Red");
-    } else if(index == 1) {
-        ui->statusBar->showMessage("Axis 1: Red; Axis 2: Yellow");
-    } else {
-        ui->statusBar->showMessage("Axis 1: Red; Axis 2: Yellow; Axis 3: Green");
-    }
+    qDebug() << "MainWindow::on_comboAxes_valueChanged(" << index << ");\r";
+    ui->statusBar->showMessage(QString::number(index) + "Axis");
+    ////////////////////////////////////////////////////
+    setupPlot();
+
 }
 /******************************************************************************************************************/
 
@@ -471,6 +731,7 @@ void MainWindow::on_comboAxes_currentIndexChanged(int index)
 /******************************************************************************************************************/
 void MainWindow::on_spinYStep_valueChanged(int arg1)
 {
+    qDebug() << "MainWindow::on_spinYStep_valueChanged(" << arg1 << ");\r";
     ui->plot->yAxis->setTickStep(arg1);
     ui->plot->replot();
 }
@@ -482,6 +743,7 @@ void MainWindow::on_spinYStep_valueChanged(int arg1)
 /******************************************************************************************************************/
 void MainWindow::on_saveJPGButton_clicked()
 {
+    qDebug() << "MainWindow::on_saveJPGButton_clicked();\r";
     ui->plot->saveJpg(QString::number(dataPointNumber) + ".jpg");
 }
 /******************************************************************************************************************/
@@ -492,6 +754,7 @@ void MainWindow::on_saveJPGButton_clicked()
 /******************************************************************************************************************/
 void MainWindow::on_resetPlotButton_clicked()
 {
+    qDebug() << "MainWindow::on_resetPlotButton_clicked();\r";
     ui->plot->yAxis->setRange(0, 4095);
     ui->plot->xAxis->setRange(dataPointNumber - NUMBER_OF_POINTS, dataPointNumber);
     ui->plot->yAxis->setTickStep(500);
@@ -505,6 +768,7 @@ void MainWindow::on_resetPlotButton_clicked()
 /******************************************************************************************************************/
 void MainWindow::onMouseMoveInPlot(QMouseEvent *event)
 {
+    qDebug() << "MainWindow::onMouseMoveInPlot(" << event << ");\r";
     int xx = ui->plot->xAxis->pixelToCoord(event->x());
     int yy = ui->plot->yAxis->pixelToCoord(event->y());
     QString coordinates("X: %1 Y: %2");
@@ -519,6 +783,7 @@ void MainWindow::onMouseMoveInPlot(QMouseEvent *event)
 /******************************************************************************************************************/
 void MainWindow::on_spinPoints_valueChanged(int arg1)
 {
+    qDebug() << "MainWindow::on_spinPoints_valueChanged(" << arg1 << ");\r";
     NUMBER_OF_POINTS = arg1;
     ui->plot->replot();
 }
@@ -530,6 +795,7 @@ void MainWindow::on_spinPoints_valueChanged(int arg1)
 /******************************************************************************************************************/
 void MainWindow::on_actionHow_to_use_triggered()
 {
+    qDebug() << "MainWindow::on_actionHow_to_use_triggered();\r";
     helpWindow = new HelpWindow(this);
     helpWindow->setWindowTitle("How to use this application");
     helpWindow->show();

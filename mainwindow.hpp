@@ -27,9 +27,14 @@
 #ifndef MAINWINDOW_HPP
 #define MAINWINDOW_HPP
 
+#include <QTextDocumentWriter>
+#include <QFile>
+
 #include <QMainWindow>
 #include <QtSerialPort/QtSerialPort>
 #include <QSerialPortInfo>
+#include <QDebug>
+#include <QPen>
 #include "helpwindow.hpp"
 
 #define START_MSG       '$'
@@ -52,53 +57,103 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_comboPort_currentIndexChanged(const QString &arg1);                           // Slot displays message on status bar
-    void on_connectButton_clicked();                                                      // Manages connect/disconnect
-    void portOpenedSuccess();                                                             // Called when port opens OK
-    void portOpenedFail();                                                                // Called when port fails to open
-    void onPortClosed();                                                                  // Called when closing the port
-    void replot();                                                                        // Slot for repainting the plot
-    void on_stopPlotButton_clicked();                                                     // Starts and stops plotting
-    void onNewDataArrived(QStringList newData);                                           // Slot for new data from serial port
-    void on_spinAxesMin_valueChanged(int arg1);                                           // Changing lower limit for the plot
-    void on_spinAxesMax_valueChanged(int arg1);                                           // Changing upper limit for the plot
-    void readData();                                                                      // Slot for inside serial port
-    void on_comboAxes_currentIndexChanged(int index);                                     // Display number of axes and colors in status bar
-    void on_spinYStep_valueChanged(int arg1);                                             // Spin box for changing Y axis tick step
-    void on_saveJPGButton_clicked();                                                      // Button for saving JPG
-    void on_resetPlotButton_clicked();                                                    // Resets plot to initial zoom and coordinates
-    void onMouseMoveInPlot(QMouseEvent *event);                                           // Displays coordinates of mouse pointer when clicked in plot in status bar
-    void on_spinPoints_valueChanged(int arg1);                                            // Spin box controls how many data points are collected and displayed
-
+    // Slot displays message on status bar
+    void on_comboPort_currentIndexChanged(const QString &arg1);
+    // Manages connect/disconnect
+    void on_connectButton_clicked();
+    // Called when port opens OK
+    void portOpenedSuccess();
+    // Called when port fails to open
+    void portOpenedFail();
+    // Called when closing the port
+    void onPortClosed();
+    // Slot for repainting the plot
+    void replot();
+    // Starts and stops plotting
+    void on_stopPlotButton_clicked();
+    // Slot for new data from serial port
+    void onNewDataArrived(QStringList newData);
+    // Changing lower limit for the plot
+    void on_spinAxesMin_valueChanged(int arg1);
+    // Changing upper limit for the plot
+    void on_spinAxesMax_valueChanged(int arg1);
+    // Slot for inside serial port
+    void readData();
+    // Display number of axes and colors in status bar
+    void on_comboAxes_valueChanged(int index);
+    // Spin box for changing Y axis tick step
+    void on_spinYStep_valueChanged(int arg1);
+    // Button for saving JPG
+    void on_saveJPGButton_clicked();
+    // Resets plot to initial zoom and coordinates
+    void on_resetPlotButton_clicked();
+    // Displays coordinates of mouse pointer when clicked in plot in status bar
+    void onMouseMoveInPlot(QMouseEvent *event);
+    // Spin box controls how many data points are collected and displayed
+    void on_spinPoints_valueChanged(int arg1);
     void on_actionHow_to_use_triggered();
 
+    //просто для теста
+    void debugTimeOut();
+
+    void readDocData();
+
 signals:
-    void portOpenFail();                                                                  // Emitted when cannot open port
-    void portOpenOK();                                                                    // Emitted when port is open
-    void portClosed();                                                                    // Emitted when port is closed
-    void newData(QStringList data);                                                       // Emitted when new data has arrived
+    // Emitted when cannot open port
+    void portOpenFail();
+    // Emitted when port is open
+    void portOpenOK();
+    // Emitted when port is closed
+    void portClosed();
+    // Emitted when new data has arrived
+    void newData(QStringList data);
 
 private:
     Ui::MainWindow *ui;
 
-    bool connected;                                                                       // Status connection variable
-    bool plotting;                                                                        // Status plotting variable
-    int dataPointNumber;                                                                  // Keep track of data points
-    QTimer updateTimer;                                                                   // Timer used for replotting the plot
-    int numberOfAxes;                                                                     // Number of axes for the plot
-    QTime timeOfFirstData;                                                                // Record the time of the first data point
-    double timeBetweenSamples;                                                            // Store time between samples
-    QSerialPort *serialPort;                                                              // Serial port; runs in this thread
-    QString receivedData;                                                                 // Used for reading from the port
-    int STATE;                                                                            // State of recieiving message from port
-    int NUMBER_OF_POINTS;                                                                 // Number of points plotted
+    QFile writer;
+    QFile reader;
+
+    // Status connection variable
+    bool connected;
+    // Status plotting variable
+    bool plotting;
+    // Keep track of data points
+    int dataPointNumber;
+    // Timer used for replotting the plot
+    QTimer updateTimer;
+    // Number of axes for the plot
+    int numberOfAxes;
+    // Record the time of the first data point
+    QTime timeOfFirstData;
+    // Store time between samples
+    double timeBetweenSamples;
+    // Serial port; runs in this thread
+    QSerialPort *serialPort;
+    // Used for reading from the port
+    QString receivedData;
+    // State of recieiving message from port
+    int STATE;
+    // Number of points plotted
+    int NUMBER_OF_POINTS;
     HelpWindow *helpWindow;
 
-    void createUI();                                                                      // Populate the controls
-    void enableControls(bool enable);                                                     // Enable/disable controls
-    void setupPlot();                                                                     // Setup the QCustomPlot
+    // Populate the controls
+    void createUI();
+    // Enable/disable controls
+    void enableControls(bool enable);
+    // Setup the QCustomPlot
+    void setupPlot();
                                                                                           // Open the inside serial port with these parameters
     void openPort(QSerialPortInfo portInfo, int baudRate, QSerialPort::DataBits dataBits, QSerialPort::Parity parity, QSerialPort::StopBits stopBits);
+
+    ///////////////////////////////////////////////////////////////
+    QTimer timerReadFile;
+private slots:
+
+    void slotOpenFile();
+    void slotReadFile();
+    void slotStartStopReadFile();
 };
 
 
