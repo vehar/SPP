@@ -98,6 +98,10 @@ private slots:
 
     void readDocData();
 
+    void on_temperatureButton_clicked();
+    void on_humidityButton_clicked();
+    void on_gasButton_clicked();
+
 signals:
     // Emitted when cannot open port
     void portOpenFail();
@@ -147,6 +151,7 @@ private:
                                                                                           // Open the inside serial port with these parameters
     void openPort(QSerialPortInfo portInfo, int baudRate, QSerialPort::DataBits dataBits, QSerialPort::Parity parity, QSerialPort::StopBits stopBits);
 
+    void drawPoint(QStringList newData, int axesNum, int startData, int size);
     ///////////////////////////////////////////////////////////////
     QTimer timerReadFile;
 private slots:
@@ -154,7 +159,7 @@ private slots:
     void slotOpenFile();
     void slotReadFile();
     void slotStartStopReadFile();
-    void slotTextChange();
+    void slotTextChange(int num);
 };
 
 

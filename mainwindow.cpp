@@ -104,8 +104,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->StartStopReadFileBtn, SIGNAL(clicked(bool)), this, SLOT(slotStartStopReadFile()));
     connect(&timerReadFile, SIGNAL(timeout()), this, SLOT(slotReadFile()));
 
-      connect(ui->temperatureButton, SIGNAL(clicked()),this, SLOT(slotTextChange()));
-     // connect(ui->humidityButton, SIGNAL(clicked(bool)), ui->temperatureButton, SLOT(setDisabled(bool)));
 }
 /******************************************************************************************************************/
 
@@ -157,7 +155,18 @@ void MainWindow::slotOpenFile(){
     open = !open;
 }
 
-void MainWindow::slotReadFile(){
+void MainWindow::drawPoint(QStringList newData, int axesNum, int startData, int size)
+{
+    // Add data to graphs according to number of axes
+    for(int i = 0; ((i < axesNum) && (size > i)); ++i)
+    {
+        ui->plot->graph(i+startData)->addData(dataPointNumber, newData[i+startData].toInt());
+        ui->plot->graph(i+startData)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+    }
+}
+
+void MainWindow::slotReadFile()
+{
     qDebug() << "MainWindow::slotReadFile();\r";
     QStringList newData;
     QString str;
@@ -171,24 +180,38 @@ void MainWindow::slotReadFile(){
     }
     int dataListSize = newData.size();
     dataPointNumber++;
-    for(int i = 0; i < numberOfAxes && dataListSize > i; ++i){
-        ui->plot->graph(i)->addData(dataPointNumber, newData[i].toInt());
-        ui->plot->graph(i)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+
+    if(dataListSize > 5)
+    {
+       switch(numberOfAxes)
+       {
+            case 1:
+            {
+                drawPoint(newData, 3, 0, dataListSize);
+            } break;
+
+            case 2:
+            {
+                drawPoint(newData, 1, 3, dataListSize);
+            } break;
+
+            case 3:
+            {
+                drawPoint(newData, 1, 4, dataListSize);
+            } break;
+
+            default: break;
+       }
     }
     ui->plot->xAxis->setRange(dataPointNumber - NUMBER_OF_POINTS, dataPointNumber);
     ui->plot->replot();
 }
 
-int cnt = 0;
-void MainWindow::slotTextChange(){
+
+void MainWindow::slotTextChange(int num)
+{
 qDebug() << "MainWindow::slotTextChange();\r";
 
-QString msg;
-msg += "cnt val ";
-msg += msg.number(cnt);
-
-cnt++;
-ui->temperatureButton->setText(msg);
 }
 
 
@@ -270,62 +293,38 @@ void MainWindow::setupPlot()
     ui->plot->clearItems();
     // Set tick step according to user spin box
     ui->plot->yAxis->setTickStep(ui->spinYStep->value());
+
     // Get number of axes from the user combo
-    numberOfAxes = ui->comboAxes->value();
+    //numberOfAxes = ui->comboAxes->value();
+
     // Set lower and upper plot range
     ui->plot->yAxis->setRange(ui->spinAxesMin->value(), ui->spinAxesMax->value());
     // Set x axis range for specified number of points
     ui->plot->xAxis->setRange(0, NUMBER_OF_POINTS);
-    for(int i = 0; i < numberOfAxes; ++i){
+    for(int i = 0; i < 10 /*numberOfAxes*/; ++i)
+    {
         ui->plot->addGraph();
         switch(i%6){
         case 0:
             ui->plot->graph(i)->setPen(QPen(Qt::red));
             break;
         case 1:
-            ui->plot->graph(i)->setPen(QPen(Qt::green));
-            break;
-        case 2:
-            ui->plot->graph(i)->setPen(QPen(Qt::blue));
-            break;
-        case 3:
             ui->plot->graph(i)->setPen(QPen(Qt::cyan));
             break;
+        case 2:
+            ui->plot->graph(i)->setPen(QPen(Qt::green));
+            break;
+        case 3:
+            ui->plot->graph(i)->setPen(QPen(Qt::white));
+            break;
         case 4:
-            ui->plot->graph(i)->setPen(QPen(Qt::magenta));
+            ui->plot->graph(i)->setPen(QPen(Qt::yellow));
             break;
         case 5:
-            ui->plot->graph(i)->setPen(QPen(Qt::yellow));
+            ui->plot->graph(i)->setPen(QPen(Qt::magenta));
             break;
         }
     }
-
-/*
-    // If 1 axis selected
-    if(numberOfAxes == 1) {
-        // add Graph 0
-        ui->plot->addGraph();
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-    // If 2 axes selected
-    } else if(numberOfAxes == 2) {
-        // add Graph 0
-        ui->plot->addGraph();
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-        // add Graph 1
-        ui->plot->addGraph();
-        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
-    // If 3 axis selected
-    } else if(numberOfAxes == 3) {
-        // add Graph 0
-        ui->plot->addGraph();
-        ui->plot->graph(0)->setPen(QPen(Qt::red));
-        // add Graph 1
-        ui->plot->addGraph();
-        ui->plot->graph(1)->setPen(QPen(Qt::yellow));
-        // add Graph 2
-        ui->plot->addGraph();
-        ui->plot->graph(2)->setPen(QPen(Qt::green));
-    }*/
 }
 /******************************************************************************************************************/
 
@@ -565,45 +564,28 @@ void MainWindow::onNewDataArrived(QStringList newData)
         dataPointNumber++;
 
 // Add data to graphs according to number of axes
-       /* for(int i = 0; i < numberOfAxes && dataListSize > i; ++i)
+        if(dataListSize > 5)
         {
-            ui->plot->graph(i)->addData(dataPointNumber, newData[i].toInt());
-            ui->plot->graph(i)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-        }*/
-        switch(numberOfAxes)
-            {
-            case 1:
-            {
-                ui->plot->graph(0)->addData(dataPointNumber, newData[0].toInt());
-                ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+           switch(numberOfAxes)
+           {
+                case 1:
+                {
+                    drawPoint(newData, 3, 0, dataListSize);
+                } break;
 
-                ui->plot->graph(1)->addData(dataPointNumber, newData[1].toInt());
-                ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            } break;
+                case 2:
+                {
+                    drawPoint(newData, 1, 3, dataListSize);
+                } break;
 
-            case 2:
-            {
-                ui->plot->graph(1)->addData(dataPointNumber, newData[1].toInt());
-                ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
+                case 3:
+                {
+                    drawPoint(newData, 1, 4, dataListSize);
+                } break;
 
-                ui->plot->graph(2)->addData(dataPointNumber, newData[2].toInt());
-                ui->plot->graph(2)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            } break;
-
-            case 3:
-            {
-                ui->plot->graph(0)->addData(dataPointNumber, newData[6].toInt());
-                ui->plot->graph(0)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-
-                ui->plot->graph(1)->addData(dataPointNumber, newData[4].toInt());
-                ui->plot->graph(1)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-
-                ui->plot->graph(2)->addData(dataPointNumber, newData[5].toInt());
-                ui->plot->graph(2)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
-            } break;
-
-            default: break;
-            }
+                default: break;
+           }
+        }
 
 
     }
@@ -748,7 +730,11 @@ void MainWindow::on_comboAxes_valueChanged(int index)
     qDebug() << "MainWindow::on_comboAxes_valueChanged(" << index << ");\r";
     ui->statusBar->showMessage(QString::number(index) + "Axis");
     ////////////////////////////////////////////////////
-    setupPlot();
+    //setupPlot();
+
+    // Get number of axes from the user combo
+    numberOfAxes = ui->comboAxes->value();
+    qDebug() << "numberOfAxes(" << numberOfAxes << ");\r";
 
 }
 /******************************************************************************************************************/
@@ -776,6 +762,18 @@ void MainWindow::on_saveJPGButton_clicked()
 }
 /******************************************************************************************************************/
 
+void MainWindow::on_temperatureButton_clicked()
+{
+    numberOfAxes = 1;
+}
+void MainWindow::on_humidityButton_clicked()
+{
+    numberOfAxes = 2;
+}
+void MainWindow::on_gasButton_clicked()
+{
+    numberOfAxes = 3;
+}
 
 /******************************************************************************************************************/
 /* Reset the zoom of the plot to the initial values */
