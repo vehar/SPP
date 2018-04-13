@@ -765,14 +765,17 @@ void MainWindow::on_saveJPGButton_clicked()
 void MainWindow::on_temperatureButton_clicked()
 {
     numberOfAxes = 1;
+    ui->plot->yAxis->setRange(2000, 4000);// NEW
 }
 void MainWindow::on_humidityButton_clicked()
 {
     numberOfAxes = 2;
+     ui->plot->yAxis->setRange(10, 200);// NEW
 }
 void MainWindow::on_gasButton_clicked()
 {
     numberOfAxes = 3;
+     ui->plot->yAxis->setRange(500, 1500);// NEW
 }
 
 /******************************************************************************************************************/
