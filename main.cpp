@@ -27,6 +27,9 @@
 #include "mainwindow.hpp"
 #include <QApplication>
 
+//http://www.qcustomplot.com/documentation/thelayoutsystem.html
+//https://doc.qt.io/qt-5.10/qtcharts-legendmarkers-example.html
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

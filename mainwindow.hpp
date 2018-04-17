@@ -101,6 +101,7 @@ private slots:
     void on_temperatureButton_clicked();
     void on_humidityButton_clicked();
     void on_gasButton_clicked();
+    void on_dustButton_clicked();
 
 signals:
     // Emitted when cannot open port

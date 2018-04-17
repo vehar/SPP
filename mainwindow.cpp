@@ -57,7 +57,15 @@ MainWindow::MainWindow(QWidget *parent) :
     font.setStyleStrategy(QFont::NoAntialias);
     ui->plot->xAxis->setTickLabelFont(font);
     ui->plot->yAxis->setTickLabelFont(font);
+
+    font.setPixelSize(15); //font size
     ui->plot->legend->setFont(font);
+    ui->plot->legend->setVisible(true);
+    ui->plot->legend->setBrush(QBrush(QColor(128, 128, 128, 128)));// backgroung!
+    ui->plot->legend->setTextColor(QColor(200,255,200));
+    //ui->plot->legend->clearItems();
+
+    numberOfAxes = 6;
 
     // User can change tick step with a spin box
     ui->plot->yAxis->setAutoTickStep(false);
@@ -200,6 +208,16 @@ void MainWindow::slotReadFile()
                 drawPoint(newData, 1, 4, dataListSize);
             } break;
 
+            case 4:
+            {
+                drawPoint(newData, 1, 5, dataListSize);
+            } break;
+
+           case 6:
+           {
+               drawPoint(newData, 6, 0, dataListSize);
+           } break;
+
             default: break;
        }
     }
@@ -301,7 +319,7 @@ void MainWindow::setupPlot()
     ui->plot->yAxis->setRange(ui->spinAxesMin->value(), ui->spinAxesMax->value());
     // Set x axis range for specified number of points
     ui->plot->xAxis->setRange(0, NUMBER_OF_POINTS);
-    for(int i = 0; i < 10 /*numberOfAxes*/; ++i)
+    for(int i = 0; i < 6 /*numberOfAxes*/; ++i)
     {
         ui->plot->addGraph();
         switch(i%6){
@@ -325,6 +343,14 @@ void MainWindow::setupPlot()
             break;
         }
     }
+    ui->plot->graph(0)->setName("Temp 1");
+    ui->plot->graph(1)->setName("Temp 2");
+    ui->plot->graph(2)->setName("Temp 3");
+    ui->plot->graph(3)->setName("CO2 ");
+    ui->plot->graph(4)->setName("Humidity");
+    ui->plot->graph(5)->setName("Dust");
+   // ui->plot->graph(6)->setName("Temperature 1");
+   // ui->plot->graph(7)->setName("Temperature 2");
 }
 /******************************************************************************************************************/
 
@@ -583,6 +609,16 @@ void MainWindow::onNewDataArrived(QStringList newData)
                     drawPoint(newData, 1, 4, dataListSize);
                 } break;
 
+                case 4:
+                {
+                    drawPoint(newData, 1, 5, dataListSize);
+                } break;
+
+               case 6:
+               {
+                   drawPoint(newData, 6, 0, dataListSize);
+               } break;
+
                 default: break;
            }
         }
@@ -776,6 +812,12 @@ void MainWindow::on_gasButton_clicked()
 {
     numberOfAxes = 3;
      ui->plot->yAxis->setRange(500, 1500);// NEW
+}
+
+void MainWindow::on_dustButton_clicked()
+{
+    numberOfAxes = 4;
+    ui->plot->yAxis->setRange(0, 100);// NEW!!!
 }
 
 /******************************************************************************************************************/
