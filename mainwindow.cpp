@@ -165,10 +165,13 @@ void MainWindow::slotOpenFile(){
 
 void MainWindow::drawPoint(QStringList newData, int axesNum, int startData, int size)
 {
+    int data = 0;
     // Add data to graphs according to number of axes
     for(int i = 0; ((i < axesNum) && (size > i)); ++i)
     {
-        ui->plot->graph(i+startData)->addData(dataPointNumber, newData[i+startData].toInt());
+        data = newData[i+startData].toInt();
+        if(startData == 5){data = data*10;}
+        ui->plot->graph(i+startData)->addData(dataPointNumber, data);
         ui->plot->graph(i+startData)->removeDataBefore(dataPointNumber - NUMBER_OF_POINTS);
     }
 }
@@ -262,8 +265,9 @@ void MainWindow::createUI()
     ui->comboBaud->addItem("38400");
     ui->comboBaud->addItem("57600");
     ui->comboBaud->addItem("115200");
+
     // Select 9600 bits by default
-    ui->comboBaud->setCurrentIndex(7);
+    ui->comboBaud->setCurrentIndex(3);
 
     // Populate data bits combo box
     ui->comboData->addItem("8 bits");
@@ -346,8 +350,8 @@ void MainWindow::setupPlot()
     ui->plot->graph(0)->setName("Temp 1");
     ui->plot->graph(1)->setName("Temp 2");
     ui->plot->graph(2)->setName("Temp 3");
-    ui->plot->graph(3)->setName("CO2 ");
-    ui->plot->graph(4)->setName("Humidity");
+    ui->plot->graph(3)->setName("Humidity");
+    ui->plot->graph(4)->setName("CO2 ");
     ui->plot->graph(5)->setName("Dust");
    // ui->plot->graph(6)->setName("Temperature 1");
    // ui->plot->graph(7)->setName("Temperature 2");
@@ -496,7 +500,7 @@ void MainWindow::portOpenedSuccess()
     // Enable button for saving plot
     ui->saveJPGButton->setEnabled(true);
     // Create the QCustomPlot area
-    setupPlot();
+ //   setupPlot();
     // Slot is refreshed 20 times per second
     updateTimer.start(20);
     // Set flags
@@ -802,24 +806,32 @@ void MainWindow::on_temperatureButton_clicked()
 {
     numberOfAxes = 1;
     ui->plot->yAxis->setRange(2000, 4000);// NEW
+    ui->plot->yAxis->setTickStep(500);
 }
 void MainWindow::on_humidityButton_clicked()
 {
     numberOfAxes = 2;
      ui->plot->yAxis->setRange(10, 200);// NEW
+     ui->plot->yAxis->setTickStep(25);
 }
 void MainWindow::on_gasButton_clicked()
 {
     numberOfAxes = 3;
      ui->plot->yAxis->setRange(500, 1500);// NEW
+     ui->plot->yAxis->setTickStep(100);
 }
-
 void MainWindow::on_dustButton_clicked()
 {
     numberOfAxes = 4;
-    ui->plot->yAxis->setRange(0, 100);// NEW!!!
+    ui->plot->yAxis->setRange(0, 50);// NEW!!!
+    ui->plot->yAxis->setTickStep(2);
 }
-
+void MainWindow::on_allButton_clicked()
+{
+    numberOfAxes = 6;
+    ui->plot->yAxis->setRange(0, 4000);// NEW
+    ui->plot->yAxis->setTickStep(500);
+}
 /******************************************************************************************************************/
 /* Reset the zoom of the plot to the initial values */
 /******************************************************************************************************************/
