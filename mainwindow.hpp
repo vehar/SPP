@@ -53,7 +53,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -92,11 +92,6 @@ private slots:
     // Spin box controls how many data points are collected and displayed
     void on_spinPoints_valueChanged(int arg1);
     void on_actionHow_to_use_triggered();
-
-    //just for debug
-    void debugTimeOut();
-
-    void readDocData();
 
     void on_temperatureButton_clicked();
     void on_humidityButton_clicked();
@@ -143,6 +138,7 @@ private:
     // Number of points plotted
     int NUMBER_OF_POINTS;
     HelpWindow *helpWindow;
+    int updatePeriod;
 
     // Populate the controls
     void createUI();
@@ -161,7 +157,6 @@ private slots:
     void slotOpenFile();
     void slotReadFile();
     void slotStartStopReadFile();
-    void slotTextChange(int num);
 };
 
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>891</width>
-    <height>722</height>
+    <width>946</width>
+    <height>850</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -573,6 +573,60 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QCheckBox" name="savePrevDataCheck">
+                <property name="palette">
+                 <palette>
+                  <active>
+                   <colorrole role="Text">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>0</red>
+                      <green>255</green>
+                      <blue>0</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </active>
+                  <inactive>
+                   <colorrole role="Text">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>0</red>
+                      <green>255</green>
+                      <blue>0</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </inactive>
+                  <disabled>
+                   <colorrole role="Text">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="96">
+                      <red>164</red>
+                      <green>166</green>
+                      <blue>168</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </disabled>
+                 </palette>
+                </property>
+                <property name="text">
+                 <string>SavePrevData</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="followDataCheck">
+                <property name="text">
+                 <string>FollowData</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
            </layout>
@@ -644,6 +698,20 @@
     </item>
     <item row="2" column="2">
      <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="1">
+       <widget class="QPushButton" name="humidityButton">
+        <property name="text">
+         <string>Humidity</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QPushButton" name="allButton">
+        <property name="text">
+         <string>All</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="4">
        <widget class="QPushButton" name="dustButton">
         <property name="text">
@@ -665,20 +733,6 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QPushButton" name="humidityButton">
-        <property name="text">
-         <string>Humidity</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QPushButton" name="allButton">
-        <property name="text">
-         <string>All</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </item>
    </layout>
@@ -689,8 +743,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>891</width>
-     <height>21</height>
+     <width>946</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuHelo">
