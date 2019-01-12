@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
         a.setStyleSheet(file.readAll());
         file.close();
     }
-
     MainWindow w;
     QIcon appIcon(":/Icons/Icons/serial_port_icon.icns");                       // Get the icon for the right corner
     w.setWindowIcon(appIcon);

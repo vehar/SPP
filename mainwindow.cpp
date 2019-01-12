@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stopPlotButton->setEnabled(false);
     // used for higher performance (see QCustomPlot real time example)
     ui->plot->setNotAntialiasedElements(QCP::aeAll);
+
     QFont font;
     font.setStyleStrategy(QFont::NoAntialias);
     ui->plot->xAxis->setTickLabelFont(font);
@@ -95,7 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->plot, SIGNAL(mouseRelease(QMouseEvent*)), this, SLOT(onMouseMoveInPlot(QMouseEvent*)));
 
     // Set serial port pointer to NULL initially
-    serialPort = NULL;
+    serialPort = nullptr;
     // Connect update timer to replot slot
     connect(&updateTimer, SIGNAL(timeout()), this, SLOT(replot()));
 
