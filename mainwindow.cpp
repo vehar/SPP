@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connected(false),
     plotting(false),
     dataPointNumber(0),
-    numberOfAxes(8),
+    numberOfAxes(10),
     STATE(WAIT_START),
     NUMBER_OF_POINTS(500),
     updatePeriod(200)
@@ -45,6 +45,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     createUI(); // Create the UI
+
+    // Populate axes combo box;                 // n axes maximum allowed
+    ui->comboAxes->setValue(numberOfAxes);
+
     ui->plot->setBackground(QBrush(QColor(48,47,47)));// Background for the plot area
     setupPlot(); // Setup plot area
     // Plot button is disabled initially
@@ -385,6 +389,7 @@ void MainWindow::createUI()
     ui->comboBaud->addItem("38400");
     ui->comboBaud->addItem("57600");
     ui->comboBaud->addItem("115200");
+    ui->comboBaud->addItem("460800");
 
     // Select 9600 bits by default
     ui->comboBaud->setCurrentIndex(3);
@@ -402,8 +407,6 @@ void MainWindow::createUI()
     ui->comboStop->addItem("1 bit");
     ui->comboStop->addItem("2 bits");
 
-    // Populate axes combo box;                 // n axes maximum allowed
-    ui->comboAxes->setValue(numberOfAxes);
 }
 
 
@@ -433,18 +436,22 @@ void MainWindow::setupPlot()
     ui->plot->yAxis->setTickStep(ui->spinYStep->value());// Set tick step according to user spin box
 
     // Get number of axes from the user combo
-    //numberOfAxes = ui->comboAxes->value();
+    numberOfAxes = ui->comboAxes->value();
 
     // Set lower and upper plot range
     ui->plot->yAxis->setRange(ui->spinAxesMin->value(), ui->spinAxesMax->value());
     // Set x axis range for specified number of points
     ui->plot->xAxis->setRange(0, NUMBER_OF_POINTS);
+
+    QColor color = QColor(255, 0, 0, 255);
+
+    //removeGraph();
     for(int i = 0; i < numberOfAxes; ++i)
     {
         ui->plot->addGraph();
-        switch(i%9){
+        switch(i%10){
         case 0:
-            ui->plot->graph(i)->setPen(QPen(Qt::red));
+            ui->plot->graph(i)->setPen(QPen(color, 2, Qt::SolidLine, Qt::FlatCap));
             break;
         case 1:
             ui->plot->graph(i)->setPen(QPen(Qt::green));
@@ -468,18 +475,28 @@ void MainWindow::setupPlot()
             ui->plot->graph(i)->setPen(QPen(Qt::gray));
             break;
         case 8:
-            ui->plot->graph(i)->setPen(QPen(Qt::darkRed));
+            ui->plot->graph(i)->setPen(QPen(color, 2, Qt::DotLine, Qt::FlatCap));
+            break;
+        case 9:
+            ui->plot->graph(i)->setPen(QPen(color, 3, Qt::DashLine, Qt::FlatCap));
+            break;
+        case 10:
+            ui->plot->graph(i)->setPen(QPen(color, 6, Qt::DotLine, Qt::FlatCap));
             break;
         default: ui->plot->graph(i)->setPen(QPen(Qt::white));
             break;
         }
     }
-    ui->plot->graph(0)->setName("Temp 1");
-    ui->plot->graph(1)->setName("Temp 2");
-    ui->plot->graph(2)->setName("Temp 3");
-    ui->plot->graph(3)->setName("Humidity");
-    ui->plot->graph(4)->setName("CO2 ");
-    ui->plot->graph(5)->setName("Dust");
+    ui->plot->graph(0)->setName("PM_NP_2.5");
+    ui->plot->graph(1)->setName("PM_NP_5 х10");
+    ui->plot->graph(2)->setName("PM_NP_10 х8");
+    ui->plot->graph(3)->setName("T 1");
+    ui->plot->graph(4)->setName("T 2 ");
+    ui->plot->graph(5)->setName("T 3");
+    ui->plot->graph(6)->setName("T 4");
+    ui->plot->graph(7)->setName("MCU Temp");
+    ui->plot->graph(8)->setName("CO2 level");
+    ui->plot->graph(9)->setName("...");
    // ui->plot->graph(6)->setName("Temperature 1");
    // ui->plot->graph(7)->setName("Temperature 2");
 }
@@ -693,11 +710,10 @@ void MainWindow::on_comboAxes_valueChanged(int index)
     qDebug() << "MainWindow::on_comboAxes_valueChanged(" << index << ");\r";
     ui->statusBar->showMessage(QString::number(index) + "Axis");
     ////////////////////////////////////////////////////
-    //setupPlot();
-
     // Get number of axes from the user combo
     numberOfAxes = ui->comboAxes->value();
     qDebug() << "numberOfAxes(" << numberOfAxes << ");\r";
+    //setupPlot();
 }
 
 /******************************************************************************************************************/
